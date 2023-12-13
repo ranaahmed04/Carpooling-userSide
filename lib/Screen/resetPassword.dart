@@ -2,6 +2,9 @@ import 'package:proj_carpooling/Screen/profile.dart';
 import 'package:flutter/material.dart';
 
 class ResetPassword extends StatefulWidget {
+  final String email;
+
+  ResetPassword({required this.email});
   @override
   State<ResetPassword> createState() => _ResetPasswordState();
 }

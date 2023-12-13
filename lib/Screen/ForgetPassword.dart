@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:proj_carpooling/Screen/resetPassword.dart';
 
@@ -9,35 +10,69 @@ class ForgotPassword extends StatefulWidget {
 class _ForgotPasswordState extends State<ForgotPassword> {
   final TextEditingController emailController = TextEditingController();
 
-  void resetPassword(BuildContext context) {
-    Future.delayed(Duration(seconds: 3), () {
-      Navigator.push(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) {
-            return ResetPassword();
-          },
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1.0, 0.0),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            );
-          },
+  void resetPassword(BuildContext context) async {
+    String userEmail = emailController.text;
+
+    if (userEmail.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please enter your email.'),
+          duration: Duration(seconds: 3),
         ),
       );
+      return;
+    }
 
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Reset password link sent to ${emailController.text}'),
-        duration: Duration(seconds: 3),
-      ),
-    );
+    try {
+      QuerySnapshot<Map<String, dynamic>> userSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: userEmail)
+          .get();
+
+      if (userSnapshot.docs.isNotEmpty) {
+        // User exists in the Firestore collection, navigate to ResetPassword screen
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Reset password link sent to ${userEmail}' ),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) {
+              return ResetPassword(email: userEmail);
+            },
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1.0, 0.0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          ),
+        );
+      } else {
+        // User does not exist in the Firestore collection, show an error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('User does not exist. This email is not registered.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error occurred. Please try again.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
-
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
