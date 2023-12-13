@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proj_carpooling/Screen/login.dart';
 import 'package:proj_carpooling/Screen/profile.dart';
@@ -83,6 +84,12 @@ class _RideCartState extends State<RideCart> {
     // Add more dummy data items if needed
     // ...
   ];
+
+  void signOutUser() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    await auth.signOut();
+    print('User signed out');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -192,6 +199,7 @@ class _RideCartState extends State<RideCart> {
         type: BottomNavigationBarType.fixed,
         onTap: (i) {
           if (i == 3) {
+            signOutUser();
             Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => SignInPage()),
                   (route) => false,
             );

@@ -23,6 +23,12 @@ class _HomePageState extends State<HomePage> {
     _getCurrentUserAndSyncData();
   }
 
+  void signOutUser() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    await auth.signOut();
+    print('User signed out');
+  }
+
   Future<void> _fetchUserData(String userId) async {
     try {
       DocumentSnapshot<Map<String, dynamic>> snapshot =
@@ -142,6 +148,7 @@ class _HomePageState extends State<HomePage> {
         type: BottomNavigationBarType.fixed,
         onTap: (i) {
           if (i == 3) {
+            signOutUser();
             Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => SignInPage()),
                   (route) => false,
             );

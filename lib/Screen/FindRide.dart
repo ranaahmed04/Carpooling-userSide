@@ -1,9 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proj_carpooling/Screen/login.dart';
 import 'package:proj_carpooling/Screen/profile.dart';
 import 'package:proj_carpooling/Screen/RideCart.dart';
 import 'package:intl/intl.dart';
+
+
+
+class UserDetails {
+  final String userId;
+  final String userEmail;
+  final String userphone;
+  final String username;
+
+  UserDetails({required this.userId, required this.userEmail, required this.userphone, required this.username});
+}
 
 
 class RideListPage extends StatefulWidget {
@@ -15,13 +27,103 @@ class RideListPage extends StatefulWidget {
 
 class _RideListPageState extends State<RideListPage> {
   late Stream<QuerySnapshot> _ridesStream;
+  User? _currentUser;
 
   @override
   void initState() {
     super.initState();
+    _getCurrentUser();
     _ridesStream = FirebaseFirestore.instance.collection('rides').snapshots();
   }
+// Function to get the current user's details
+  Future<UserDetails> getCurrentUserDetails() async {
+    if (_currentUser != null) {
+      String userId = _currentUser!.uid;
+      String userEmail = _currentUser!.email ?? ''; // Default empty string if null\
 
+      // Fetch the user's name from Firestore
+      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      String userName = userSnapshot['username'] ?? '';
+      String userPhone = userSnapshot['phoneNumber'] ?? '';
+
+      return UserDetails(userId: userId, userEmail: userEmail,userphone: userPhone,username: userName);
+    } else {
+      throw Exception('No user is currently logged in');
+    }
+  }
+  Future<void> addRideToCart(DocumentSnapshot rideSnapshot) async {
+    Map<String, dynamic> rideData =
+    rideSnapshot.data() as Map<String, dynamic>;
+
+
+    try {
+      var currentUser = await getCurrentUserDetails(); // Await to get user details
+
+      var rideExists = await FirebaseFirestore.instance
+          .collection('requests')
+          .where('ride_id', isEqualTo: rideSnapshot.id)
+          .where('user_id', isEqualTo: currentUser.userId)
+          .get();
+
+      if (rideExists.docs.isEmpty) {
+        // If the ride with the user doesn't exist in the request collection, add it
+
+        Map<String, dynamic> rideDetails = {
+          'user_id': currentUser.userId,
+          'userName': currentUser.username,
+          'userEmail': currentUser.userEmail,
+          'ride_id':rideSnapshot.id,
+          'Ridestart_location': rideData["start_location"] ,
+          'Rideend_location':rideData["end_location"] ,
+          'Rideselected_time': rideData["selected_time"] ,
+          'Rideselected_gate': rideData["selected_gate"] ,
+          'Ride_date': rideData["ride_date"] ,
+          'Ride_cost': rideData["ride_cost"] ,
+          'Ridedriver_id':rideData["driver_id"] ,
+          'Ridedriver_username': rideData["driver_username"] ,
+          'Ridedriver_email': rideData["driver_email"] ,
+          'Ridecar_model': rideData["car_model"] ,
+          'Ridecar_color': rideData["car_color"] ,
+          'Ridecar_plateNumber': rideData["car_plateNumber"] ,
+          'Ridecar_plateLetters': rideData["car_plateLetters"] ,
+          'status': 'cart',
+          // Add other fields or details of the ride
+        };
+        await FirebaseFirestore.instance.collection('requests').add(rideDetails);
+
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ride added to cart successfully!'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('this ride is already in the cart '),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error adding ride to cart: $e');
+      // Handle the error
+    }
+  }
+  void _getCurrentUser() {
+    _currentUser = FirebaseAuth.instance.currentUser;
+  }
+
+  void signOutUser() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    await auth.signOut();
+    print('User signed out');
+  }
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -125,7 +227,7 @@ class _RideListPageState extends State<RideListPage> {
                             ),
                             label: Text('Add to cart'),
                             onPressed: () {
-                              // Handle onPressed logic here
+                              addRideToCart(ride);
                             },
                           ),
                         ],
@@ -144,6 +246,7 @@ class _RideListPageState extends State<RideListPage> {
         type: BottomNavigationBarType.fixed,
         onTap: (i) {
           if (i == 3) {
+            signOutUser();
             Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => SignInPage()),
                   (route) => false,
             );
