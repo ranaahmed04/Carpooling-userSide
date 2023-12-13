@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:proj_carpooling/Screen/login.dart';
 import 'package:proj_carpooling/Screen/profile.dart';
 import 'package:proj_carpooling/Screen/FindRide.dart';
@@ -14,77 +16,53 @@ class RideCart extends StatefulWidget {
 
 class _RideCartState extends State<RideCart> {
 
-  final List<Map<String, dynamic>> rideList = [
-    {
-      'id': '1',
-      'source': 'Ain shams uni',
-      'destination': 'Nasr city',
-      'time': '5:30 PM',
-      'price':'50',
-      'rider name':'Ahmed',
-      'rider mail':'user1@eng.asu.edu.eg',
-      'Car type':'Toyota',
-      'Car color':'Red',
-      'Car number':'2468 ارن',
-      'Gate':'3',
-    },
-    {
-      'id': '2',
-      'source': 'fifth settlement',
-      'destination': 'Ain shams uni',
-      'time': '7:00 AM',
-      'price':'100',
-      'rider name':'Rana',
-      'rider mail':'user2@eng.asu.edu.eg',
-      'Car type':'Kia cerato',
-      'Car color':'Red',
-      'Car number':'2468 ارن',
-      'Gate':'4',
-    },
-    {
-      'id': '3',
-      'source': 'nasr city',
-      'destination': 'Ain shams uni',
-      'time': '7:00 AM',
-      'price':'50',
-      'rider name':'Mohamed',
-      'rider mail':'user3@eng.asu.edu.eg',
-      'Car type':'Huyudai elentra',
-      'Car color':'Blue',
-      'Car number':'1357 ارن',
-      'Gate':'3',
-    },
-    {
-      'id': '4',
-      'source': 'Ain shams uni',
-      'destination': 'Maadi',
-      'time': '5:30 PM',
-      'price':'70',
-      'rider name':'Salma',
-      'rider mail':'user4@eng.asu.edu.eg',
-      'Car type':'Nisaan sunny',
-      'Car color':'Grey',
-      'Car number':'5546 ارن',
-      'Gate':'4',
-    },
-    {
-      'id': '5',
-      'source': 'Ain shams uni',
-      'destination': 'Roxy',
-      'time': '5:30 PM',
-      'price':'35',
-      'rider name':'Yussef',
-      'rider mail':'user5@eng.asu.edu.eg',
-      'Car type':'Kia cerato',
-      'Car color':'Black',
-      'Car number':'4412 ارن',
-      'Gate':'3',
-    },
+  late List<Map<String, dynamic>> rideList = [];
 
-    // Add more dummy data items if needed
-    // ...
-  ];
+  @override
+  void dispose() {
+    // Dispose resources here
+    super.dispose();
+  }
+  // Function to fetch rides requested by the current user
+  Future<void> fetchUserRides() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        String userId = user.uid;
 
+        // Fetch rides associated with the user ID
+        QuerySnapshot rideSnapshot = await FirebaseFirestore.instance
+            .collection('requests')
+            .where('user_id', isEqualTo: userId)
+            .get();
+
+        // Clear the existing rideList
+        setState(() {
+          rideList.clear();
+        });
+
+        // Add fetched rides to the rideList
+        rideSnapshot.docs.forEach((rideDoc) {
+          final rideData = rideDoc.data() as Map<String, dynamic>?;
+          final rideId = rideDoc.id;
+          if (rideData != null) {
+            setState(() {
+              rideData['doc_id'] = rideId;
+              rideList.add(Map<String, dynamic>.from(rideData));
+            });
+          }
+        });
+      }
+    } catch (e) {
+      print('Error fetching user rides: $e');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserRides(); // Fetch user rides when the widget initializes
+  }
   void signOutUser() async {
     FirebaseAuth auth = FirebaseAuth.instance;
     await auth.signOut();
@@ -120,10 +98,25 @@ class _RideCartState extends State<RideCart> {
                     children: [
                       IconButton(
                         icon: Icon(Icons.delete),
-                        onPressed: () {
-                          setState(() {
-                            rideList.removeAt(index);
-                          });
+                        onPressed: () async {
+                          if (rideList[index]['status'] == 'cart') {
+                            // Remove from Firestore collection
+                            await FirebaseFirestore.instance
+                                .collection('requests')
+                                .doc(rideList[index]['doc_id'])
+                                .delete();
+
+                            setState(() {
+                              rideList.removeAt(index); // Remove from the page
+                            });
+                          } else {
+                            // Show snackbar indicating the action cannot be performed
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Cannot remove ride as it is not in the cart'),
+                              ),
+                            );
+                          }
                         },
                       ),
                       Expanded(
@@ -131,7 +124,7 @@ class _RideCartState extends State<RideCart> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'From: ${rideList[index]['source']}',
+                              'From: ${rideList[index]['Ridestart_location']}',
                               style: TextStyle(
                                 fontSize: MediaQuery.of(context).size.width * 0.04,
                                 fontWeight: FontWeight.bold,
@@ -139,7 +132,7 @@ class _RideCartState extends State<RideCart> {
                             ),
                             SizedBox(height: screenHeight * 0.001),
                             Text(
-                              'To: ${rideList[index]['destination']}',
+                              'To: ${rideList[index]['Rideend_location']}',
                               style: TextStyle(
                                 fontSize: MediaQuery.of(context).size.width * 0.04,
                                 fontWeight: FontWeight.bold,
@@ -147,12 +140,22 @@ class _RideCartState extends State<RideCart> {
                             ),
                             SizedBox(height: screenHeight * 0.001),
                             Text(
-                              'Price: ${rideList[index]['price']}',
+                              'Price: ${rideList[index]['Ride_cost']}',
                               style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.035),
                               ),
                             SizedBox(height: screenHeight * 0.001),
                             Text(
-                              'Time: ${rideList[index]['time']}',
+                              'Date: ${DateFormat('dd.MM.yyyy').format(rideList[index]['Ride_date'].toDate())}',
+                              style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.035),
+                            ),
+                            SizedBox(height: screenHeight * 0.001),
+                            Text(
+                              'Time: ${rideList[index]['Rideselected_time']}',
+                              style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.035),
+                            ),
+                            SizedBox(height: screenHeight * 0.001),
+                            Text(
+                              'Staus: ${rideList[index]['status']}',
                               style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.035),
                             ),
                             SizedBox(height: screenHeight * 0.001),

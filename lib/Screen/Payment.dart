@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:proj_carpooling/Screen/profile.dart';
 
 class PaymentScreen extends StatefulWidget {
+  final String docId;
+
+  const PaymentScreen({Key? key, required this.docId}) : super(key: key);
+
   @override
   _PaymentScreenState createState() => _PaymentScreenState();
 }
@@ -14,14 +19,29 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String _expiryYear = '';
   String _cvv = '';
 
-  void _makePayment(BuildContext context) {
-    // Implement your payment logic here
-    // For demo purposes, simulate a delay and show a SnackBar message
-    Future.delayed(Duration(seconds: 1), () {
+
+  @override
+  void dispose() {
+    // Dispose resources here
+    super.dispose();
+  }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+  }
+
+  void _makePayment(BuildContext context) async {
+    if (!mounted) return; // Check if the widget is mounted before proceeding
+
+    if (_paymentMethod == 'Cash') {
+      // Simulate payment and show SnackBar
+      await Future.delayed(Duration(seconds: 1));
+      if (!mounted) return; // Check again before accessing context
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'Payment is complete',
+            'Payment is complete',
             style: TextStyle(
               fontSize: MediaQuery.of(context).size.width * 0.04,
               color: Colors.green,
@@ -31,11 +51,49 @@ class _PaymentScreenState extends State<PaymentScreen> {
           duration: Duration(seconds: 5),
         ),
       );
-    });
-    Navigator.pushReplacement(context,
+    } else if (_paymentMethod == 'Visa') {
+      if (_cardNumber.isEmpty ||
+          _cardHolderName.isEmpty ||
+          _expiryMonth.isEmpty ||
+          _expiryYear.isEmpty ||
+          _cvv.isEmpty) {
+        // Show a message if Visa details are incomplete
+        if (!mounted) return; // Check before showing SnackBar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Please fill all Visa details',
+              style: TextStyle(
+                fontSize: MediaQuery.of(context).size.width * 0.04,
+                color: Colors.red,
+              ),
+            ),
+            duration: Duration(seconds: 5),
+            backgroundColor: Colors.blueGrey,
+          ),
+        );
+        return;
+      }
+      // Perform payment logic for Visa
+    }
+
+    if (!mounted) return; // Check before updating Firestore
+    try {
+      await FirebaseFirestore.instance
+          .collection('requests')
+          .doc(widget.docId)
+          .update({'status': 'pending'});
+    } catch (e) {
+      print('Error updating status: $e');
+    }
+
+    if (!mounted) return; // Check before navigation
+    Navigator.pushAndRemoveUntil(
+      context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) {
           return HomePage();
+
         },
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return SlideTransition(
@@ -46,7 +104,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             child: child,
           );
         },
-      ),);
+      ),
+          (route) => false,
+    );
   }
 
   @override
@@ -70,12 +130,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   fontSize: screenWidth * 0.06,
                   fontWeight: FontWeight.bold,
                 ),
-
               ),
               SizedBox(height: screenWidth * 0.1),
               Row(
                 children: [
-
                   Radio<String>(
                     value: 'Cash',
                     groupValue: _paymentMethod,
@@ -196,34 +254,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   elevation: MaterialStateProperty.all<double>(8.0),
                 ),
                 onPressed: () {
-                  // Handle payment logic based on selected method
-                  if (_paymentMethod == 'Cash') {
-                    _makePayment(context);
-                  } else if (_paymentMethod == 'Visa') {
-                    // Validate Visa details before payment
-                    if (_cardNumber.isNotEmpty &&
-                        _cardHolderName.isNotEmpty &&
-                        _expiryMonth.isNotEmpty &&
-                        _expiryYear.isNotEmpty &&
-                        _cvv.isNotEmpty) {
-                      _makePayment(context);
-                    } else {
-                      // Show a message if Visa details are incomplete
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              'Please fill all Visa details',
-                            style: TextStyle(
-                              fontSize: MediaQuery.of(context).size.width * 0.04,
-                              color: Colors.red,
-                            ),
-                          ),
-                          duration: Duration(seconds: 5),
-                          backgroundColor: Colors.blueGrey,
-                        ),
-                      );
-                    }
-                  }
+                  _makePayment(context);
                 },
                 child: Text('Pay', style: TextStyle(fontSize: screenWidth * 0.04)),
               ),

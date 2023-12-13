@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:proj_carpooling/Screen/Payment.dart';
 
 class RideDetail extends StatefulWidget {
@@ -13,6 +15,25 @@ class RideDetail extends StatefulWidget {
 class _RideDetailState extends State<RideDetail> {
 
 
+  @override
+  void dispose() {
+    // Dispose resources here
+    super.dispose();
+  }
+  Future<String> _getStatus(String docId) async {
+    // Fetch the status from Firestore using the provided docId
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('requests')
+          .doc(docId)
+          .get();
+      Map<String, dynamic>? data = snapshot.data() as Map<String, dynamic>?; // Handle type correctly
+      return data?['status'] ?? ''; // Return the status or empty string if not found
+    } catch (e) {
+      print('Error fetching status: $e');
+      return ''; // Return empty string on error
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -53,7 +74,7 @@ class _RideDetailState extends State<RideDetail> {
                         children: [
                           ListTile(
                               title: Text(
-                                  'Source: ${widget.rideList['source']}',
+                                  'Source: ${widget.rideList['Ridestart_location']}',
                                 style: TextStyle(
                                   fontSize: MediaQuery.of(context).size.width * 0.04,
                                 ),
@@ -61,7 +82,7 @@ class _RideDetailState extends State<RideDetail> {
                           ),
                           ListTile(
                             title: Text(
-                                'Destination: ${widget.rideList['destination']}',
+                                'Destination: ${widget.rideList['Rideend_location']}',
                               style: TextStyle(
                                 fontSize: MediaQuery.of(context).size.width * 0.04,
                               ),
@@ -69,7 +90,7 @@ class _RideDetailState extends State<RideDetail> {
                           ),
                           ListTile(
                             title: Text(
-                              'Price: ${widget.rideList['price']}',
+                              'Price: ${widget.rideList['Ride_cost']}',
                               style: TextStyle(
                                 fontSize: MediaQuery.of(context).size.width * 0.04,
                               ),
@@ -77,7 +98,7 @@ class _RideDetailState extends State<RideDetail> {
                           ),
                           ListTile(
                             title: Text(
-                              'Time: ${widget.rideList['time']}',
+                              'Date: ${DateFormat('dd.MM.yyyy').format(widget.rideList['Ride_date'].toDate())}',
                               style: TextStyle(
                                 fontSize: MediaQuery.of(context).size.width * 0.04,
                               ),
@@ -85,7 +106,7 @@ class _RideDetailState extends State<RideDetail> {
                           ),
                           ListTile(
                             title: Text(
-                              'Driver Name: ${widget.rideList['rider name']}',
+                              'Time: ${widget.rideList['Rideselected_time']}',
                               style: TextStyle(
                                 fontSize: MediaQuery.of(context).size.width * 0.04,
                               ),
@@ -93,7 +114,7 @@ class _RideDetailState extends State<RideDetail> {
                           ),
                           ListTile(
                             title: Text(
-                              'Driver mail: ${widget.rideList['rider mail']}',
+                              'Driver Name: ${widget.rideList['Ridedriver_username']}',
                               style: TextStyle(
                                 fontSize: MediaQuery.of(context).size.width * 0.04,
                               ),
@@ -101,7 +122,7 @@ class _RideDetailState extends State<RideDetail> {
                           ),
                           ListTile(
                             title: Text(
-                              'Car Model: ${widget.rideList['Car type']}',
+                              'Driver mail: ${widget.rideList['Ridedriver_email']}',
                               style: TextStyle(
                                 fontSize: MediaQuery.of(context).size.width * 0.04,
                               ),
@@ -109,7 +130,7 @@ class _RideDetailState extends State<RideDetail> {
                           ),
                           ListTile(
                             title: Text(
-                              'Car Color: ${widget.rideList['Car color']}',
+                              'Car Model: ${widget.rideList['Ridecar_model']}',
                               style: TextStyle(
                                 fontSize: MediaQuery.of(context).size.width * 0.04,
                               ),
@@ -117,7 +138,7 @@ class _RideDetailState extends State<RideDetail> {
                           ),
                           ListTile(
                             title: Text(
-                              'Car Number: ${widget.rideList['Car number']}',
+                              'Car Color: ${widget.rideList['Ridecar_color']}',
                               style: TextStyle(
                                 fontSize: MediaQuery.of(context).size.width * 0.04,
                               ),
@@ -125,7 +146,23 @@ class _RideDetailState extends State<RideDetail> {
                           ),
                           ListTile(
                             title: Text(
-                              'Checking gate : ${widget.rideList['Gate']}',
+                              'Car Number: ${widget.rideList['Ridecar_plateNumber']}',
+                              style: TextStyle(
+                                fontSize: MediaQuery.of(context).size.width * 0.04,
+                              ),
+                            ),
+                          ),
+                          ListTile(
+                            title: Text(
+                              'Car Letters: ${widget.rideList['Ridecar_plateLetters']}',
+                              style: TextStyle(
+                                fontSize: MediaQuery.of(context).size.width * 0.04,
+                              ),
+                            ),
+                          ),
+                          ListTile(
+                            title: Text(
+                              'Checking gate : ${widget.rideList['Rideselected_gate']}',
                               style: TextStyle(
                                 fontSize: MediaQuery.of(context).size.width * 0.04,
                               ),
@@ -149,24 +186,45 @@ class _RideDetailState extends State<RideDetail> {
                 backgroundColor: MaterialStateProperty.all<Color>(Colors.purple),
                 elevation: MaterialStateProperty.all<double>(8.0),
               ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) {
-                      return PaymentScreen();
-                    },
-                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                      return SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(1.0, 0.0),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      );
-                    },
-                  ),
-                );
+              onPressed: () async {
+                String status = await _getStatus(widget.rideList['doc_id']);
+                if (mounted && status == 'cart') {
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) {
+                        return PaymentScreen(
+                          docId: widget.rideList['doc_id'],
+                        );
+                      },
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        return SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(1.0, 0.0),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                } else {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'This rise is paid check the status',
+                          style: TextStyle(
+                            fontSize: MediaQuery.of(context).size.width * 0.04,
+                            color: Colors.red,
+                          ),
+                        ),
+                        duration: Duration(seconds: 5),
+                        backgroundColor: Colors.blueGrey,
+                      ),
+                    );
+                  }
+                }
               },
               child: Text('Pay'),
             ),
