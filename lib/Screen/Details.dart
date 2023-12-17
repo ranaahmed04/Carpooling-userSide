@@ -64,14 +64,6 @@ class _RideDetailState extends State<RideDetail> {
 
     bool isValid = currentTime.isBefore(reservationCutoff);
 
-    if (!isValid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Reservation is overdue.'),
-        ),
-      );
-    }
-
     return isValid;
   }
 
