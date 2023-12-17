@@ -27,6 +27,7 @@ class RideListPage extends StatefulWidget {
 
 class _RideListPageState extends State<RideListPage> {
   late Stream<QuerySnapshot> _ridesStream;
+  DateTime? _selectedDate; // Variable to hold the selected date for filtering
   User? _currentUser;
 
   @override
@@ -137,9 +138,18 @@ class _RideListPageState extends State<RideListPage> {
           IconButton(
             icon: Icon(Icons.search),
             onPressed: () {
-              // Handle search logic
+              _selectDate(context);
             },
           ),
+          if (_selectedDate != null) // Show clear button only when date is selected
+            IconButton(
+              icon: Icon(Icons.clear),
+              onPressed: () {
+                setState(() {
+                  _selectedDate = null; // Clear selected date
+                });
+              },
+            ),
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -152,6 +162,7 @@ class _RideListPageState extends State<RideListPage> {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           final rides = snapshot.data!.docs;
+
           final currentTime = DateTime.now();
           final upcomingRides = rides.where((ride) {
             final rideDate = (ride['ride_date'] as Timestamp).toDate();
@@ -165,7 +176,8 @@ class _RideListPageState extends State<RideListPage> {
               int.parse(rideTime.split(':')[1].split(' ')[0]),
             );
 
-            return currentTime.isBefore(rideDateTime);
+            return (_selectedDate == null || rideDate.isAtSameMomentAs(_selectedDate!)) &&
+                currentTime.isBefore(rideDateTime);
           }).toList();
           return Center(
             child: ListView.builder(
@@ -335,5 +347,20 @@ class _RideListPageState extends State<RideListPage> {
         ],
       ),
     );
+  }
+  // Function to open a date picker
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2023),
+      lastDate: DateTime(2060),
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked; // Set selected date
+      });
+    }
   }
 }

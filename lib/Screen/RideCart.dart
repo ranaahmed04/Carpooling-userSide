@@ -17,6 +17,7 @@ class RideCart extends StatefulWidget {
 class _RideCartState extends State<RideCart> {
 
   late List<Map<String, dynamic>> rideList = [];
+  String _searchStatus = ''; // Track selected status
 
   @override
   void dispose() {
@@ -40,7 +41,7 @@ class _RideCartState extends State<RideCart> {
 
       final rideStatus = rideList[i]['status'];
 
-      if (rideStatus == 'cart' && currentTime.isAfter(rideDateTime)) {
+      if ((rideStatus == 'cart' ||rideStatus == 'pending')&& currentTime.isAfter(rideDateTime)) {
         rideList[i]['status'] = 'Expired';
         FirebaseFirestore.instance
             .collection('requests')
@@ -48,6 +49,17 @@ class _RideCartState extends State<RideCart> {
             .update({'status': 'Expired'})
             .then((_) {
           print('Status updated to expired for ride ${rideList[i]['doc_id']}');
+        }).catchError((error) {
+          print('Error updating status: $error');
+        });
+      }else if (rideStatus == 'Accepted' && currentTime.isAfter(rideDateTime)){
+        rideList[i]['status'] = 'Completed';
+        FirebaseFirestore.instance
+            .collection('requests')
+            .doc(rideList[i]['doc_id'])
+            .update({'status': 'Completed'})
+            .then((_) {
+          print('Status updated to completed for ride ${rideList[i]['doc_id']}');
         }).catchError((error) {
           print('Error updating status: $error');
         });
@@ -128,13 +140,41 @@ class _RideCartState extends State<RideCart> {
       appBar: AppBar(
         title: Text("Ain_shams car pooling"),
         backgroundColor: Colors.purple,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Container(
+              width: screenWidth * 0.5,
+              child: TextField(
+                onChanged: (value) {
+                  setState(() {
+                    _searchStatus = value.toLowerCase(); // Update search status
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Search by status...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
+
       body: Center(
         child: ListView.builder(
           padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.02),
           itemCount: rideList.length,
           itemBuilder: (BuildContext context, int index) {
             bool isExpired = rideList[index]['status'] == 'Expired';
+
+            // Filter rides based on search status
+            final status = rideList[index]['status'].toString().toLowerCase();
+            if (_searchStatus.isNotEmpty && !status.contains(_searchStatus)) {
+              return SizedBox(); // Return an empty SizedBox for non-matching statuses
+            }
             return Padding(
               padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.02),
               child: Card(
@@ -148,28 +188,32 @@ class _RideCartState extends State<RideCart> {
                   ),
                   title: Row(
                     children: [
-                      IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () async {
-                          if (rideList[index]['status'] == 'cart') {
-                            // Remove from Firestore collection
-                            await FirebaseFirestore.instance
-                                .collection('requests')
-                                .doc(rideList[index]['doc_id'])
-                                .delete();
+                      Visibility(
+                        visible: rideList[index]['status'] == 'cart' || rideList[index]['status'] == 'Expired',
+                        child: IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () async {
+                            // Your delete logic here
+                            if (rideList[index]['status'] == 'cart'|| rideList[index]['status'] == 'Expired') {
+                              // Remove from Firestore collection
+                              await FirebaseFirestore.instance
+                                  .collection('requests')
+                                  .doc(rideList[index]['doc_id'])
+                                  .delete();
 
-                            setState(() {
-                              rideList.removeAt(index); // Remove from the page
-                            });
-                          } else {
-                            // Show snackbar indicating the action cannot be performed
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Cannot remove ride as it is not in the cart'),
-                              ),
-                            );
-                          }
-                        },
+                              setState(() {
+                                rideList.removeAt(index); // Remove from the page
+                              });
+                            } else {
+                              // Show snackbar indicating the action cannot be performed
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Cannot remove ride as it is not in the cart'),
+                                ),
+                              );
+                            }
+                          },
+                        ),
                       ),
                       Expanded(
                         child: Column(
