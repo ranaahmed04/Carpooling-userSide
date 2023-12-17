@@ -152,12 +152,27 @@ class _RideListPageState extends State<RideListPage> {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           final rides = snapshot.data!.docs;
+          final currentTime = DateTime.now();
+          final upcomingRides = rides.where((ride) {
+            final rideDate = (ride['ride_date'] as Timestamp).toDate();
+            final rideTime = ride['selected_time'] as String;
+
+            final rideDateTime = DateTime(
+              rideDate.year,
+              rideDate.month,
+              rideDate.day,
+              int.parse(rideTime.split(':')[0]),
+              int.parse(rideTime.split(':')[1].split(' ')[0]),
+            );
+
+            return currentTime.isBefore(rideDateTime);
+          }).toList();
           return Center(
             child: ListView.builder(
               padding: EdgeInsets.all(screenWidth * 0.02),
-              itemCount: rides.length,
+              itemCount: upcomingRides.length,
               itemBuilder: (BuildContext context, int index) {
-                final ride = rides[index];
+                final ride = upcomingRides[index];
                 return Padding(
                   padding: EdgeInsets.all(screenWidth * 0.02),
                   child: Card(
