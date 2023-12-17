@@ -23,6 +23,38 @@ class _RideCartState extends State<RideCart> {
     // Dispose resources here
     super.dispose();
   }
+  void checkAndUpdateStatus() {
+    final currentTime = DateTime.now();
+
+    for (int i = 0; i < rideList.length; i++) {
+      final rideDate = (rideList[i]['Ride_date'] as Timestamp).toDate();
+      final rideTime = rideList[i]['Rideselected_time'] as String;
+      var rideDateTime = DateTime(rideDate.year, rideDate.month, rideDate.day);
+
+      // Parse the selected time string to get the time components
+      final timeComponents = rideTime.split(':');
+      final int hours = int.parse(timeComponents[0]);
+      final int minutes = int.parse(timeComponents[1].split(' ')[0]);
+
+      rideDateTime = rideDateTime.add(Duration(hours: hours, minutes: minutes));
+
+      final rideStatus = rideList[i]['status'];
+
+      if (rideStatus == 'cart' && currentTime.isAfter(rideDateTime)) {
+        rideList[i]['status'] = 'Expired';
+        FirebaseFirestore.instance
+            .collection('requests')
+            .doc(rideList[i]['doc_id'])
+            .update({'status': 'Expired'})
+            .then((_) {
+          print('Status updated to expired for ride ${rideList[i]['doc_id']}');
+        }).catchError((error) {
+          print('Error updating status: $error');
+        });
+      }
+    }
+  }
+
   // Function to fetch rides requested by the current user
   Future<void> fetchUserRides() async {
     try {
@@ -62,11 +94,30 @@ class _RideCartState extends State<RideCart> {
   void initState() {
     super.initState();
     fetchUserRides(); // Fetch user rides when the widget initializes
+    checkAndUpdateStatus(); // Check and update status when the widget initializes
   }
   void signOutUser() async {
     FirebaseAuth auth = FirebaseAuth.instance;
     await auth.signOut();
     print('User signed out');
+  }
+  Color getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'cart':
+        return Colors.amberAccent;
+      case 'pending':
+        return Colors.orange;
+      case 'rejected':
+        return Colors.red;
+      case 'accepted':
+        return Colors.green;
+      case 'completed':
+        return Colors.purple;
+      case 'expired':
+        return Colors.black54;
+      default:
+        return Colors.black;
+    }
   }
 
   @override
@@ -83,6 +134,7 @@ class _RideCartState extends State<RideCart> {
           padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.02),
           itemCount: rideList.length,
           itemBuilder: (BuildContext context, int index) {
+            bool isExpired = rideList[index]['status'] == 'Expired';
             return Padding(
               padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.02),
               child: Card(
@@ -156,7 +208,10 @@ class _RideCartState extends State<RideCart> {
                             SizedBox(height: screenHeight * 0.001),
                             Text(
                               'Staus: ${rideList[index]['status']}',
-                              style: TextStyle(fontSize: MediaQuery.of(context).size.width * 0.035),
+                              style: TextStyle(
+                                fontSize: MediaQuery.of(context).size.width * 0.035,
+                                color: getStatusColor(rideList[index]['status']),
+                               ),
                             ),
                             SizedBox(height: screenHeight * 0.001),
                           ],
@@ -164,12 +219,21 @@ class _RideCartState extends State<RideCart> {
                       ),
                     ],
                   ),
-                  trailing: TextButton.icon(
-                    icon: Icon(
-                      Icons.bus_alert,
-                      size: MediaQuery.of(context).size.width * 0.09,
+                  trailing: isExpired
+                      ? TextButton.icon(
+                         icon: Icon(
+                          Icons.bus_alert,
+                          size: MediaQuery.of(context).size.width * 0.09,
+                        ),
+                          label: Text('Details'),
+                        onPressed: null, // Button is disabled
+                  )
+                      : TextButton.icon(
+                          icon: Icon(
+                           Icons.bus_alert,
+                            size: MediaQuery.of(context).size.width * 0.09,
                     ),
-                    label: Text('Details'),
+                            label: Text('Details'),
                     onPressed: () {
                       Navigator.push(
                         context,
