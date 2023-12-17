@@ -76,6 +76,7 @@ class _RideListPageState extends State<RideListPage> {
           'user_id': currentUser.userId,
           'userName': currentUser.username,
           'userEmail': currentUser.userEmail,
+          'userphone':currentUser.userphone,
           'ride_id':rideSnapshot.id,
           'Ridestart_location': rideData["start_location"] ,
           'Rideend_location':rideData["end_location"] ,

@@ -34,6 +34,48 @@ class _RideDetailState extends State<RideDetail> {
       return ''; // Return empty string on error
     }
   }
+  Future<bool> checkReservationTime() async {
+    Timestamp? rideTimestamp = widget.rideList['Ride_date'] as Timestamp?;
+    String? rideTimeString = widget.rideList['Rideselected_time'] as String?;
+
+    if (rideTimestamp == null || rideTimeString == null) {
+      // Handle null values
+      print('Missing ride date or time.');
+      return false;
+    }
+
+    DateTime rideDateTime = rideTimestamp.toDate();
+    int rideDay = rideDateTime.day;
+    int rideMonth = rideDateTime.month;
+    int rideYear = rideDateTime.year;
+
+    List<String> timeComponents = rideTimeString.split(':');
+    int rideHour = int.parse(timeComponents[0]);
+    int rideMinute = int.parse(timeComponents[1].split(' ')[0]);
+
+    DateTime currentTime = DateTime.now();
+    DateTime reservationCutoff=DateTime.now();
+
+    if (rideHour < 7 || (rideHour == 7 && rideMinute <= 30)) {
+      reservationCutoff = DateTime(rideYear, rideMonth, rideDay - 1, 22, 0); // Before 10:00 PM of the previous day
+    } else if (rideHour < 17 || (rideHour == 17 && rideMinute <= 30)) {
+      reservationCutoff = DateTime(rideYear, rideMonth, rideDay, 13, 0); // Before 1:00 PM of the same day
+    }
+
+    bool isValid = currentTime.isBefore(reservationCutoff);
+
+    if (!isValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Reservation is overdue.'),
+        ),
+      );
+    }
+
+    return isValid;
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -187,33 +229,35 @@ class _RideDetailState extends State<RideDetail> {
                 elevation: MaterialStateProperty.all<double>(8.0),
               ),
               onPressed: () async {
-                String status = await _getStatus(widget.rideList['doc_id']);
-                if (mounted && status == 'cart') {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) {
-                        return PaymentScreen(
-                          docId: widget.rideList['doc_id'],
-                        );
-                      },
-                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                        return SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(1.0, 0.0),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        );
-                      },
-                    ),
-                  );
-                } else {
-                  if (mounted) {
+                bool isReservationValid = await checkReservationTime();
+
+                if (isReservationValid) {
+                  String status = await _getStatus(widget.rideList['doc_id']);
+                  if (mounted && status == 'cart') {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) {
+                          return PaymentScreen(
+                            docId: widget.rideList['doc_id'],
+                          );
+                        },
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(1.0, 0.0),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'This rise is paid check the status',
+                          'This ride is already paid.',
                           style: TextStyle(
                             fontSize: MediaQuery.of(context).size.width * 0.04,
                             color: Colors.red,
@@ -224,8 +268,23 @@ class _RideDetailState extends State<RideDetail> {
                       ),
                     );
                   }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Reservation is overdue.',
+                        style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.width * 0.04,
+                          color: Colors.red,
+                        ),
+                      ),
+                      duration: Duration(seconds: 5),
+                      backgroundColor: Colors.blueGrey,
+                    ),
+                  );
                 }
               },
+
               child: Text('Pay'),
             ),
             SizedBox(height: screenHeight * 0.01),
