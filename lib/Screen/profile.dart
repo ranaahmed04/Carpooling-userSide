@@ -5,6 +5,8 @@ import 'package:proj_carpooling/Screen/login.dart';
 import 'package:proj_carpooling/Screen/RideCart.dart';
 import 'package:proj_carpooling/Screen/editProfile.dart';
 import 'package:proj_carpooling/Screen/FindRide.dart';
+import 'package:proj_carpooling/Database.dart';
+import 'package:connectivity/connectivity.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -16,13 +18,51 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late User? _currentUser;
   late Map<String, dynamic> _userData = {};
+  late bool _isConnected;
+  DatabaseService _databaseService = DatabaseService();
 
   @override
   void initState() {
     super.initState();
+    //_initializeLocalDatabase;
     _getCurrentUserAndSyncData();
+
+  }
+  /*Future<void> _initializeLocalDatabase() async {
+    await _databaseService.initialize();
+    print('Local database initialized');
+  }
+  Future<void> initialize() async {
+    await _databaseService.initialize(); // Initialize the database
+    print('intialized from profile');
+    await _databaseService.checkData();
+    print('done checking');
+    await checkConnectivity();
+    print('done connect');
+    // await startPeriodicSync();
+    //print('done syncing');
+    await _databaseService.printDatabaseContent();
+    print('done printing');
   }
 
+  Future<bool> checkInternetConnectivity() async {
+    print('hancheck aho el connection');
+    var connectivityResult = await Connectivity().checkConnectivity();
+    return connectivityResult != ConnectivityResult.none;
+  }
+  Future<void> checkConnectivity() async {
+    _isConnected = await checkInternetConnectivity();
+    if (_isConnected) {
+      print(_isConnected);
+      // If online, sync data with Firestore
+      await _getCurrentUserAndSyncData();
+      await startPeriodicSync();
+    } else {
+      // If offline, display data from SQLite
+      print(_isConnected);
+      await displayDataFromSQLite();
+    }
+  }*/
   void signOutUser() async {
     FirebaseAuth auth = FirebaseAuth.instance;
     await auth.signOut();

@@ -30,7 +30,7 @@ class _RideCartState extends State<RideCart> {
     for (int i = 0; i < rideList.length; i++) {
       final rideDate = (rideList[i]['Ride_date'] as Timestamp).toDate();
       final rideTime = rideList[i]['Rideselected_time'] as String;
-      var rideDateTime = DateTime(rideDate.year, rideDate.month, rideDate.day);
+      DateTime rideDateTime = DateTime(rideDate.year, rideDate.month, rideDate.day);
 
       // Parse the selected time string to get the time components
       final timeComponents = rideTime.split(':');
@@ -105,8 +105,12 @@ class _RideCartState extends State<RideCart> {
   @override
   void initState() {
     super.initState();
-    fetchUserRides(); // Fetch user rides when the widget initializes
-    checkAndUpdateStatus(); // Check and update status when the widget initializes
+    initializePage();
+  }
+
+  void initializePage() async {
+    await fetchUserRides(); // Wait for fetching rides to complete
+    checkAndUpdateStatus(); // Now, update the status based on fetched rides
   }
   void signOutUser() async {
     FirebaseAuth auth = FirebaseAuth.instance;
