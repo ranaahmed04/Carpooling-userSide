@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:proj_carpooling/Screen/Payment.dart';
@@ -13,8 +14,17 @@ class RideDetail extends StatefulWidget {
 }
 
 class _RideDetailState extends State<RideDetail> {
+  late User? _currentUser;
 
 
+  void _getCurrentUser() {
+    _currentUser = FirebaseAuth.instance.currentUser;
+  }
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentUser();
+  }
   @override
   void dispose() {
     // Dispose resources here
@@ -35,6 +45,10 @@ class _RideDetailState extends State<RideDetail> {
     }
   }
   Future<bool> checkReservationTime() async {
+
+    if (_currentUser != null && _currentUser!.email == 'testuser@eng.asu.edu.eg') {
+      return true; // Allow bypassing time restriction for specific email
+    }
     Timestamp? rideTimestamp = widget.rideList['Ride_date'] as Timestamp?;
     String? rideTimeString = widget.rideList['Rideselected_time'] as String?;
 
