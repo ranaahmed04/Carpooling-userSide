@@ -39,7 +39,7 @@ class DatabaseService {
         print('User data: $row');
       });
     } else {
-      print('No user data available');
+      print('No USER DATA AVLIABLE');
     }
   }
 
@@ -88,17 +88,17 @@ class DatabaseService {
     List<Map<String, dynamic>> existingData = await _database.query('user');
     if (existingData.isNotEmpty) {
       print('data not empty');
-      // If there's existing data, update it
-      await _database.update('user', userData,
-          where: 'id = ?', whereArgs: [existingData.first['id']]);
+      // Update the existing data
+      await _database.update('user', userData);
     } else {
-      // If no existing data, insert the new data
+      // Insert the new data
       print('mafesh');
       await _database.insert('user', userData);
     }
 
     print('synced');
   }
+
 
 
   Future<Map<String, dynamic>> fetchUserDataFromSQLite() async {

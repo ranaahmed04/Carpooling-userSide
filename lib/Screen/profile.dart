@@ -32,13 +32,14 @@ class _HomePageState extends State<HomePage> {
     _currentUser = FirebaseAuth.instance.currentUser;
     if (_currentUser != null) {
       userId = _currentUser!.uid; // Initialize userId only if _currentUser is not null
-      print(userId);
+      print('userid: $userId');
     } else {
       print('null');
     }
     setState(() {});
+
     initialize(); // Call the initialize method
-    //_getCurrentUserAndSyncData();
+
     _timer = Timer.periodic(reloadDuration, (Timer timer) {
       setState(() {});
     });
@@ -46,15 +47,13 @@ class _HomePageState extends State<HomePage> {
   }
   Future<void> initialize() async {
     await _databaseService.initialize(); // Initialize the database
-    print('intialized from profile');
+    print('Initialized from profile');
     await _databaseService.checkData();
-    print('done checking');
+    print('Done checking');
     await checkConnectivity1();
-    print('done connect');
-    // await startPeriodicSync();
-    //print('done syncing');
+    print('Done connect');
     await _databaseService.printDatabaseContent();
-    print('done printing');
+    print('Done printing');
   }
 
   Future<bool> checkInternetConnectivity() async {
@@ -85,7 +84,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> startPeriodicSync() async {
-    Timer.periodic(Duration(minutes:10), (timer) async {
+    Timer.periodic(Duration(minutes:1), (timer) async {
       if (_isConnected) {
         print('hansync aho');
         await syncWithFirestore();
@@ -119,18 +118,14 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void signOutUser() async {
-    FirebaseAuth auth = FirebaseAuth.instance;
-    await auth.signOut();
-    print('User signed out');
-  }
-
   Future<Map<String, dynamic>> _fetchUserData(String userId) async {
     try {
       DocumentSnapshot<Map<String, dynamic>> snapshot =
       await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
       if (snapshot.exists) {
+        print("Data retrieved successfully");
+        print("User Data: ${snapshot.data()}");
         return snapshot.data() ?? {}; // Return user data or an empty map if null
       } else {
         print('User document does not exist');
@@ -142,14 +137,27 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+
   Future<void> _getCurrentUserAndSyncData() async {
     if (_currentUser != null) {
+      print("user mish null");
+      //_userData=
       await _fetchUserData(userId);
+      //print("b3d ma reg3t met fetch function");
+      //print(_userData);
+
     }
   }
+
+  void signOutUser() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    await auth.signOut();
+    print('User signed out');
+  }
+
   @override
   Widget build(BuildContext context) {
-    final email = _currentUser?.email ?? '';
+    //final email = _currentUser?.email ?? '';
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -163,11 +171,13 @@ class _HomePageState extends State<HomePage> {
         child:  FutureBuilder<Map<String, dynamic>>(
             future: _fetchUserData(_currentUser!.uid),
             builder: (context, snapshot) {
+              print('hasData: ${snapshot.hasData}');
+              print('dataIsEmpty: ${snapshot.data?.isEmpty ?? true}');
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(child: CircularProgressIndicator());
               } else if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
-              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              } else if (snapshot.data!.isEmpty ||!snapshot.hasData) {
                 return Center(child: Text('No user data available'));
               } else {
                 final userData = snapshot.data!;
@@ -207,7 +217,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                           SizedBox(height: screenHeight * 0.01),
                           Text(
-                            '${ userData['username'] ?? ''}',
+                            '${userData['username'] ?? ''}',
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w500,
@@ -258,7 +268,6 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                         onPressed: () async {
-
                           final updatedData = await Navigator.push(context, MaterialPageRoute(
                               builder: (context) => EditProfile(
                                 initialData: userData,
