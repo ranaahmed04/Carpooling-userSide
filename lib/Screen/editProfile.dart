@@ -5,16 +5,18 @@ import 'package:proj_carpooling/Screen/profile.dart';
 
 
 class EditProfile extends StatefulWidget {
-  const EditProfile({Key? key}) : super(key: key);
+  final dynamic initialData;
+  const EditProfile({Key? key, required this.initialData}) : super(key: key);
+
 
   @override
   _State createState() => _State();
 }
 
 class _State extends State<EditProfile> {
-  TextEditingController nameController = TextEditingController();
-  TextEditingController emailController = TextEditingController();
-  TextEditingController phoneController = TextEditingController();
+  late TextEditingController nameController = TextEditingController();
+  late TextEditingController emailController = TextEditingController();
+  late TextEditingController phoneController = TextEditingController();
   late User? _currentUser;
   late Map<String, dynamic> _userData = {};
 
@@ -23,7 +25,7 @@ class _State extends State<EditProfile> {
     super.initState();
     _getCurrentUserAndSyncData();
   }
-  Future<void> updateDriverInfo() async {
+  Future<void> updateUserInfo() async {
     String username = nameController.text;
     String phoneNumber = phoneController.text;
 
@@ -63,9 +65,10 @@ class _State extends State<EditProfile> {
           content: Text("Profile updated successfully!"),
         ),
       );
+      Navigator.pop(context, updatedData);
       // Optionally, navigate back to the profile screen after updating
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => HomePage()),
-            (route) => false, );
+     // Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => HomePage()),
+       //     (route) => false, );
     } catch (e) {
       // Handle any potential errors while updating Firestore
       print('Error updating profile: $e');
@@ -105,6 +108,24 @@ class _State extends State<EditProfile> {
 
   bool containsOnlyNumbers(String value) {
     return RegExp(r'^[0-9]+$').hasMatch(value);
+  }
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments != null && arguments is Map<String, dynamic>) {
+
+      // Copy the arguments to ensure safety
+      _userData = Map<String, dynamic>.from(arguments);
+      // Assign values to text controllers
+      nameController.text = _userData['username'] ?? '';
+      phoneController.text = _userData['phoneNumber'] ?? '';
+      emailController.text = _userData['email'] ?? '';
+
+      // Now you can use nameController.text, phoneController.text, emailController.text as needed
+    } else {
+      // Handle the case where arguments are invalid or null
+      // For example, show an error message or navigate back
+    }
   }
 
   @override
@@ -156,7 +177,6 @@ class _State extends State<EditProfile> {
                 ),
               ),
             ),
-
             const SizedBox(height: 2),
             buildTextFieldWithEditIcon('${_userData['username'] ?? ''}', nameController, Icons.edit),
             const SizedBox(height: 2),
@@ -177,7 +197,7 @@ class _State extends State<EditProfile> {
                 ),
                 child: const Text('Save Changes'),
                 onPressed: () {
-                  updateDriverInfo();
+                  updateUserInfo();
                 },
               ),
             ),

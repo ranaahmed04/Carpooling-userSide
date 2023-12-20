@@ -18,7 +18,7 @@ class DatabaseService {
             id INTEGER PRIMARY KEY,
             email TEXT,
             phoneNumber TEXT,
-            username TEXT,
+            username TEXT
           )
         ''');
       },
@@ -67,7 +67,7 @@ class DatabaseService {
             id INTEGER PRIMARY KEY,
             email TEXT,
             phoneNumber TEXT,
-            username TEXT,
+            username TEXT
           )
         ''');
       },
