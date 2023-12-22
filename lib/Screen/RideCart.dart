@@ -25,23 +25,34 @@ class _RideCartState extends State<RideCart> {
     super.dispose();
   }
   void checkAndUpdateStatus() {
-    final currentTime = DateTime.now();
+    DateTime currentTime = DateTime.now();
 
     for (int i = 0; i < rideList.length; i++) {
       final rideDate = (rideList[i]['Ride_date'] as Timestamp).toDate();
       final rideTime = rideList[i]['Rideselected_time'] as String;
-      DateTime rideDateTime = DateTime(rideDate.year, rideDate.month, rideDate.day);
 
       // Parse the selected time string to get the time components
       final timeComponents = rideTime.split(':');
-      final int hours = int.parse(timeComponents[0]);
+      int hours = int.parse(timeComponents[0]);
+      hours=hours+12;
       final int minutes = int.parse(timeComponents[1].split(' ')[0]);
 
-      rideDateTime = rideDateTime.add(Duration(hours: hours, minutes: minutes));
+      DateTime rideDateTime = DateTime(
+        rideDate.year,
+        rideDate.month,
+        rideDate.day,
+          hours,
+          minutes,
+
+      );
 
       final rideStatus = rideList[i]['status'];
+      print('curent $currentTime');
+      print('date $rideDateTime');
 
-      if ((rideStatus == 'cart' ||rideStatus == 'pending')&& currentTime.isAfter(rideDateTime)) {
+      print('condition ${currentTime.isAfter(rideDateTime)}');
+
+      if ((rideStatus == 'cart' || rideStatus == 'pending') && currentTime.isAfter(rideDateTime)) {
         rideList[i]['status'] = 'Expired';
         FirebaseFirestore.instance
             .collection('requests')
@@ -52,7 +63,7 @@ class _RideCartState extends State<RideCart> {
         }).catchError((error) {
           print('Error updating status: $error');
         });
-      }else if (rideStatus == 'Accepted' && currentTime.isAfter(rideDateTime)){
+      } else if (rideStatus == 'Accepted' && currentTime.isAfter(rideDateTime)) {
         rideList[i]['status'] = 'Completed';
         FirebaseFirestore.instance
             .collection('requests')
@@ -66,6 +77,7 @@ class _RideCartState extends State<RideCart> {
       }
     }
   }
+
 
   // Function to fetch rides requested by the current user
   Future<void> fetchUserRides() async {

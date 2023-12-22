@@ -167,13 +167,19 @@ class _RideListPageState extends State<RideListPage> {
           final upcomingRides = rides.where((ride) {
             final rideDate = (ride['ride_date'] as Timestamp).toDate();
             final rideTime = ride['selected_time'] as String;
+            // Parse the selected time string to get the time components
+            final timeComponents = rideTime.split(':');
+            int hours = int.parse(timeComponents[0]);
+            hours=hours+12;
+            final int minutes = int.parse(timeComponents[1].split(' ')[0]);
 
-            final rideDateTime = DateTime(
+            DateTime rideDateTime = DateTime(
               rideDate.year,
               rideDate.month,
               rideDate.day,
-              int.parse(rideTime.split(':')[0]),
-              int.parse(rideTime.split(':')[1].split(' ')[0]),
+              hours,
+              minutes,
+
             );
 
             return (_selectedDate == null || rideDate.isAtSameMomentAs(_selectedDate!)) &&
