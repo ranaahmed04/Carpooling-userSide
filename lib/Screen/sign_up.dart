@@ -25,6 +25,17 @@ class _State extends State<SignupPage> {
     String confirmPassword = confirmPasswordController.text.trim();
     String phoneNumber = phoneController.text.trim();
 
+
+
+    if (email.isEmpty || username.isEmpty || password.isEmpty ||
+        confirmPassword.isEmpty || phoneNumber.isEmpty ) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("You must fill in all fields "),
+        ),
+      );
+      return;
+    }
     // Check if the email has the correct domain
     if (!email.endsWith('@eng.asu.edu.eg')) {
       // Show an error message to the user if the email domain is incorrect
@@ -62,7 +73,7 @@ class _State extends State<SignupPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please enter a valid phone number that start with 01'),
+          content: Text('Please enter a valid phone number that start with 01 and of length 11'),
         ),
       );
       return;
