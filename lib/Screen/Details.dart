@@ -275,7 +275,25 @@ class _RideDetailState extends State<RideDetail> {
                     );
                   }
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  String status = await _getStatus(widget.rideList['doc_id']);
+                  if(!isReservationValid && status=='Completed'){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'This ride is completed ',
+                          style: TextStyle(
+                            fontSize: MediaQuery.of(context).size.width * 0.04,
+                            color: Colors.red,
+                          ),
+                        ),
+                        duration: Duration(seconds: 5),
+                        backgroundColor: Colors.grey,
+                      ),
+                    );
+
+                  }
+                  else {
+                    ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
                         'Reservation is overdue.',
@@ -288,7 +306,7 @@ class _RideDetailState extends State<RideDetail> {
                       backgroundColor: Colors.blueGrey,
                     ),
                   );
-                }
+                }}
               },
 
               child: Text('Pay'),

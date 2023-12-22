@@ -34,6 +34,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void _makePayment(BuildContext context) async {
     if (!mounted) return; // Check if the widget is mounted before proceeding
 
+    if (_paymentMethod=='') {
+      // Show a message if no payment method is selected
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please choose a payment method',
+            style: TextStyle(
+              fontSize: MediaQuery.of(context).size.width * 0.04,
+              color: Colors.red,
+            ),
+          ),
+          duration: Duration(seconds: 5),
+          backgroundColor: Colors.blueGrey,
+        ),
+      );
+      return;
+    }
     if (_paymentMethod == 'Cash') {
       // Simulate payment and show SnackBar
       await Future.delayed(Duration(seconds: 1));
